@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Google Merchant Center XML Updater</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5; color: #333; line-height: 1.6;
+        }
+        .container { max-width: 960px; margin: 0 auto; padding: 2rem 1rem; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.25rem; }
+        .subtitle { color: #666; margin-bottom: 1.5rem; }
+        h2 { font-size: 1.2rem; margin-bottom: 0.75rem; color: #444; }
+
+        .input-section {
+            background: #fff; border: 1px solid #ddd;
+            border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+        }
+        .input-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 0.5rem;
+        }
+        .input-header label { font-weight: 600; font-size: 0.95rem; }
+        .input-actions { display: flex; gap: 0.5rem; }
+        textarea {
+            width: 100%; height: 180px;
+            font-family: "SF Mono", "Fira Code", monospace; font-size: 0.8rem;
+            padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;
+            resize: vertical; background: #fafafa;
+        }
+        textarea:focus {
+            outline: none; border-color: #4a90d9;
+            box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.15);
+        }
+
+        .btn {
+            padding: 0.6rem 1.5rem; border: none; border-radius: 6px;
+            font-size: 0.95rem; font-weight: 500; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-small { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
+        .btn-primary { background: #4a90d9; color: #fff; }
+        .btn-primary:hover { background: #3a7bc8; }
+        .btn-secondary { background: #e8e8e8; color: #555; }
+        .btn-secondary:hover { background: #ddd; }
+        .btn-success { background: #2ea44f; color: #fff; padding: 0.75rem 2rem; font-size: 1.05rem; }
+        .btn-success:hover { background: #268c43; }
+        .actions { margin-bottom: 1.5rem; }
+
+        .results { margin-top: 1rem; }
+        .hidden { display: none !important; }
+        .error {
+            background: #fef2f2; color: #b91c1c; padding: 1rem;
+            border-radius: 8px; border: 1px solid #fecaca; margin-bottom: 1rem;
+        }
+        .success {
+            background: #f0fdf4; color: #166534; padding: 1.25rem;
+            border-radius: 8px; border: 1px solid #bbf7d0; font-size: 1.05rem;
+        }
+        .success .icon { font-size: 1.3rem; margin-right: 0.5rem; }
+
+        .change-card {
+            background: #fff; border: 1px solid #ddd;
+            border-radius: 8px; margin-bottom: 1rem; overflow: hidden;
+        }
+        .card-header {
+            background: #f8f9fa; padding: 0.75rem 1rem;
+            border-bottom: 1px solid #eee; font-size: 0.95rem;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        thead th {
+            background: #f8f9fa; text-align: left; padding: 0.5rem 0.75rem;
+            border-bottom: 2px solid #ddd; font-weight: 600;
+        }
+        td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #eee; word-break: break-word; }
+        .diff-table td:first-child { font-weight: 500; width: 120px; white-space: nowrap; }
+        .old-val { color: #b91c1c; background: #fef2f2; }
+        .new-val { color: #166534; background: #f0fdf4; }
+
+        #new-section, #removed-section { margin-top: 1.5rem; }
+        #new-section table, #removed-section table {
+            background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;
+        }
+        #removed-section h2 { color: #b91c1c; }
+        #new-section h2 { color: #1e40af; }
+        #download-section {
+            margin-top: 2rem; text-align: center; padding: 1.5rem;
+            background: #fff; border: 1px solid #ddd; border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Google Merchant Center XML Updater</h1>
+        <p class="subtitle">Upload or paste both XML files to compare and generate an updated Google feed.</p>
+
+        <div class="input-section">
+            <div class="input-header">
+                <label for="google-xml">Current Google Merchant Center XML</label>
+                <div class="input-actions">
+                    <button type="button" class="btn btn-secondary btn-small" onclick="document.getElementById('google-file').click()">Upload File</button>
+                    <input type="file" id="google-file" accept=".xml" hidden>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="document.getElementById('google-xml').value=''; hideResults()">Clear</button>
+                </div>
+            </div>
+            <textarea id="google-xml" placeholder="Paste current Google XML content here or upload a file..."></textarea>
+        </div>
+
+        <div class="input-section">
+            <div class="input-header">
+                <label for="shopware-xml">New Shopware XML Export</label>
+                <div class="input-actions">
+                    <button type="button" class="btn btn-secondary btn-small" onclick="document.getElementById('shopware-file').click()">Upload File</button>
+                    <input type="file" id="shopware-file" accept=".xml" hidden>
+                    <button type="button" class="btn btn-secondary btn-small" onclick="document.getElementById('shopware-xml').value=''; hideResults()">Clear</button>
+                </div>
+            </div>
+            <textarea id="shopware-xml" placeholder="Paste new Shopware XML content here or upload a file..."></textarea>
+        </div>
+
+        <div class="actions">
+            <button id="compare-btn" class="btn btn-primary">Compare</button>
+        </div>
+
+        <div id="results" class="results hidden">
+            <div id="error-msg" class="error hidden"></div>
+            <div id="identical-msg" class="success hidden">
+                <span class="icon">&#10003;</span> No changes detected. The files are identical.
+            </div>
+
+            <div id="changes-section" class="hidden">
+                <h2>Changes Found</h2>
+                <div id="changes-list"></div>
+            </div>
+
+            <div id="new-section" class="hidden">
+                <h2>New Products (in Shopware, not in Google)</h2>
+                <table id="new-table">
+                    <thead><tr><th>ID</th><th>Title</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div id="removed-section" class="hidden">
+                <h2>Removed Products (in Google, not in Shopware)</h2>
+                <table id="removed-table">
+                    <thead><tr><th>ID</th><th>Title</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div id="download-section" class="hidden">
+                <button id="download-btn" class="btn btn-success">Download Updated XML</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const G_NS = 'http://base.google.com/ns/1.0';
+
+        // Fields to compare (Shopware -> Google updates)
+        const UPDATE_FIELDS = [
+            { key: 'price',      label: 'Price',        ns: G_NS, local: 'price' },
+            { key: 'availability', label: 'Availability', ns: G_NS, local: 'availability' },
+            { key: 'title',      label: 'Title',        ns: null, local: 'title' },
+            { key: 'image_link', label: 'Image Link',   ns: G_NS, local: 'image_link' },
+            { key: 'link',       label: 'Product Link', ns: null, local: 'link' },
+        ];
+
+        // File upload handlers
+        document.getElementById('google-file').addEventListener('change', e => {
+            loadFile(e.target.files[0], 'google-xml');
+        });
+        document.getElementById('shopware-file').addEventListener('change', e => {
+            loadFile(e.target.files[0], 'shopware-xml');
+        });
+
+        function loadFile(file, targetId) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => { document.getElementById(targetId).value = ev.target.result; };
+            reader.readAsText(file);
+        }
+
+        function hideResults() {
+            document.getElementById('results').classList.add('hidden');
+            document.getElementById('error-msg').classList.add('hidden');
+            document.getElementById('identical-msg').classList.add('hidden');
+            document.getElementById('changes-section').classList.add('hidden');
+            document.getElementById('new-section').classList.add('hidden');
+            document.getElementById('removed-section').classList.add('hidden');
+            document.getElementById('download-section').classList.add('hidden');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function truncate(str, maxLen) {
+            return str.length <= maxLen ? str : str.substring(0, maxLen) + '...';
+        }
+
+        // Parse XML string into a Document
+        function parseXml(xmlStr) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xmlStr, 'application/xml');
+            const err = doc.querySelector('parsererror');
+            if (err) throw new Error('Invalid XML: ' + err.textContent.substring(0, 100));
+            return doc;
+        }
+
+        // Get text content of a child element
+        function getField(item, ns, localName) {
+            const el = ns
+                ? item.getElementsByTagNameNS(ns, localName)[0]
+                : item.getElementsByTagName(localName)[0];
+            return el ? (el.textContent || '').trim() : '';
+        }
+
+        // Extract items from parsed XML doc, keyed by g:id
+        function extractItems(doc) {
+            const items = {};
+            const itemEls = doc.getElementsByTagName('item');
+            for (const item of itemEls) {
+                const id = getField(item, G_NS, 'id');
+                if (id) items[id] = item;
+            }
+            return items;
+        }
+
+        // Compare two sets of items
+        function compareItems(googleItems, shopwareItems) {
+            const googleIds = new Set(Object.keys(googleItems));
+            const shopwareIds = new Set(Object.keys(shopwareItems));
+            const changes = [];
+            const newProducts = [];
+            const removedProducts = [];
+
+            // Products in both
+            for (const gid of [...googleIds].filter(id => shopwareIds.has(id)).sort()) {
+                const gItem = googleItems[gid];
+                const sItem = shopwareItems[gid];
+                const title = getField(gItem, null, 'title');
+                const itemChanges = [];
+                for (const f of UPDATE_FIELDS) {
+                    const gVal = getField(gItem, f.ns, f.local);
+                    const sVal = getField(sItem, f.ns, f.local);
+                    if (gVal !== sVal) {
+                        itemChanges.push({ field: f.label, old: gVal, new: sVal });
+                    }
+                }
+                if (itemChanges.length > 0) {
+                    changes.push({ id: gid, title, changes: itemChanges });
+                }
+            }
+
+            // New in Shopware
+            for (const gid of [...shopwareIds].filter(id => !googleIds.has(id)).sort()) {
+                newProducts.push({ id: gid, title: getField(shopwareItems[gid], null, 'title') });
+            }
+
+            // Removed from Shopware
+            for (const gid of [...googleIds].filter(id => !shopwareIds.has(id)).sort()) {
+                removedProducts.push({ id: gid, title: getField(googleItems[gid], null, 'title') });
+            }
+
+            return { changes, newProducts, removedProducts,
+                identical: changes.length === 0 && newProducts.length === 0 && removedProducts.length === 0 };
+        }
+
+        // Generate updated Google XML
+        function generateUpdatedXml(googleXmlStr, shopwareXmlStr) {
+            const googleDoc = parseXml(googleXmlStr);
+            const shopwareDoc = parseXml(shopwareXmlStr);
+            const googleItems = extractItems(googleDoc);
+            const shopwareItems = extractItems(shopwareDoc);
+            const googleIds = new Set(Object.keys(googleItems));
+            const shopwareIds = new Set(Object.keys(shopwareItems));
+
+            // Update existing products
+            for (const gid of [...googleIds].filter(id => shopwareIds.has(id))) {
+                const gItem = googleItems[gid];
+                const sItem = shopwareItems[gid];
+                for (const f of UPDATE_FIELDS) {
+                    const sVal = getField(sItem, f.ns, f.local);
+                    if (!sVal) continue;
+                    const gEl = f.ns
+                        ? gItem.getElementsByTagNameNS(f.ns, f.local)[0]
+                        : gItem.getElementsByTagName(f.local)[0];
+                    if (gEl) {
+                        gEl.textContent = sVal;
+                    } else {
+                        const newEl = f.ns
+                            ? googleDoc.createElementNS(f.ns, 'g:' + f.local)
+                            : googleDoc.createElement(f.local);
+                        newEl.textContent = sVal;
+                        gItem.appendChild(newEl);
+                    }
+                }
+            }
+
+            // Remove products no longer in Shopware
+            const channel = googleDoc.getElementsByTagName('channel')[0];
+            for (const gid of [...googleIds].filter(id => !shopwareIds.has(id))) {
+                const item = googleItems[gid];
+                channel.removeChild(item);
+            }
+
+            // Add new products from Shopware
+            for (const gid of [...shopwareIds].filter(id => !googleIds.has(id)).sort()) {
+                const sItem = shopwareItems[gid];
+                const newItem = buildNewGoogleItem(googleDoc, sItem);
+                channel.appendChild(googleDoc.createTextNode('\n'));
+                channel.appendChild(newItem);
+            }
+
+            // Serialize back to string
+            const serializer = new XMLSerializer();
+            let xml = serializer.serializeToString(googleDoc);
+
+            // Ensure XML declaration
+            if (!xml.startsWith('<?xml')) {
+                xml = '<?xml version="1.0" encoding="UTF-8" ?>\n' + xml;
+            }
+
+            return xml;
+        }
+
+        // Build a new Google-format item element from a Shopware item
+        function buildNewGoogleItem(doc, sItem) {
+            const item = doc.createElement('item');
+
+            function addEl(nsUri, localName, prefix, text) {
+                const el = nsUri
+                    ? doc.createElementNS(nsUri, prefix + ':' + localName)
+                    : doc.createElement(localName);
+                el.textContent = text || '';
+                item.appendChild(doc.createTextNode('\n    '));
+                item.appendChild(el);
+            }
+
+            const id = getField(sItem, G_NS, 'id');
+            addEl(G_NS, 'id', 'g', id);
+            addEl(null, 'title', '', getField(sItem, null, 'title'));
+            addEl(null, 'description', '', getField(sItem, null, 'description'));
+            addEl(G_NS, 'google_product_category', 'g', 'Food, Beverages & Tobacco > Food Items > Candy & Chocolate');
+            addEl(G_NS, 'product_type', 'g', getField(sItem, G_NS, 'product_type'));
+            addEl(null, 'link', '', getField(sItem, null, 'link'));
+            addEl(G_NS, 'image_link', 'g', getField(sItem, G_NS, 'image_link'));
+            addEl(G_NS, 'condition', 'g', 'new');
+            addEl(G_NS, 'availability', 'g', getField(sItem, G_NS, 'availability'));
+            addEl(G_NS, 'price', 'g', getField(sItem, G_NS, 'price'));
+            addEl(G_NS, 'brand', 'g', 'Cafe-Konditorei F\u00fcrst');
+            addEl(G_NS, 'identifier_exists', 'g', 'false');
+
+            // AT shipping
+            const shipAT = doc.createElementNS(G_NS, 'g:shipping');
+            const cAT = doc.createElementNS(G_NS, 'g:country'); cAT.textContent = 'AT';
+            const sAT = doc.createElementNS(G_NS, 'g:service'); sAT.textContent = 'Standard';
+            const pAT = doc.createElementNS(G_NS, 'g:price'); pAT.textContent = '10.90 EUR';
+            shipAT.appendChild(doc.createTextNode('\n        '));
+            shipAT.appendChild(cAT);
+            shipAT.appendChild(doc.createTextNode('\n        '));
+            shipAT.appendChild(sAT);
+            shipAT.appendChild(doc.createTextNode('\n        '));
+            shipAT.appendChild(pAT);
+            shipAT.appendChild(doc.createTextNode('\n    '));
+            item.appendChild(doc.createTextNode('\n    '));
+            item.appendChild(shipAT);
+
+            // DE shipping
+            const shipDE = doc.createElementNS(G_NS, 'g:shipping');
+            const cDE = doc.createElementNS(G_NS, 'g:country'); cDE.textContent = 'DE';
+            const sDE = doc.createElementNS(G_NS, 'g:service'); sDE.textContent = 'Standard';
+            const pDE = doc.createElementNS(G_NS, 'g:price'); pDE.textContent = '10.90 EUR';
+            shipDE.appendChild(doc.createTextNode('\n        '));
+            shipDE.appendChild(cDE);
+            shipDE.appendChild(doc.createTextNode('\n        '));
+            shipDE.appendChild(sDE);
+            shipDE.appendChild(doc.createTextNode('\n        '));
+            shipDE.appendChild(pDE);
+            shipDE.appendChild(doc.createTextNode('\n    '));
+            item.appendChild(doc.createTextNode('\n    '));
+            item.appendChild(shipDE);
+
+            item.appendChild(doc.createTextNode('\n'));
+            return item;
+        }
+
+        // Download helper
+        function downloadFile(content, filename) {
+            const blob = new Blob([content], { type: 'application/xml; charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // --- Event handlers ---
+
+        document.getElementById('compare-btn').addEventListener('click', () => {
+            const googleStr = document.getElementById('google-xml').value.trim();
+            const shopwareStr = document.getElementById('shopware-xml').value.trim();
+
+            if (!googleStr || !shopwareStr) {
+                alert('Please provide both the Google XML and the Shopware XML.');
+                return;
+            }
+
+            hideResults();
+            document.getElementById('results').classList.remove('hidden');
+
+            try {
+                const googleDoc = parseXml(googleStr);
+                const shopwareDoc = parseXml(shopwareStr);
+                const googleItems = extractItems(googleDoc);
+                const shopwareItems = extractItems(shopwareDoc);
+                const diff = compareItems(googleItems, shopwareItems);
+
+                if (diff.identical) {
+                    document.getElementById('identical-msg').classList.remove('hidden');
+                    return;
+                }
+
+                // Show changes
+                if (diff.changes.length > 0) {
+                    document.getElementById('changes-section').classList.remove('hidden');
+                    const list = document.getElementById('changes-list');
+                    list.innerHTML = '';
+                    diff.changes.forEach(product => {
+                        const card = document.createElement('div');
+                        card.className = 'change-card';
+                        const rows = product.changes.map(c =>
+                            `<tr>
+                                <td>${escapeHtml(c.field)}</td>
+                                <td class="old-val">${escapeHtml(truncate(c.old, 100))}</td>
+                                <td class="new-val">${escapeHtml(truncate(c.new, 100))}</td>
+                            </tr>`
+                        ).join('');
+                        card.innerHTML = `
+                            <div class="card-header">
+                                <strong>${escapeHtml(product.id)}</strong> — ${escapeHtml(product.title)}
+                            </div>
+                            <table class="diff-table">
+                                <thead><tr><th>Field</th><th>Current (Google)</th><th>New (Shopware)</th></tr></thead>
+                                <tbody>${rows}</tbody>
+                            </table>`;
+                        list.appendChild(card);
+                    });
+                }
+
+                // New products
+                if (diff.newProducts.length > 0) {
+                    document.getElementById('new-section').classList.remove('hidden');
+                    const tbody = document.querySelector('#new-table tbody');
+                    tbody.innerHTML = diff.newProducts.map(p =>
+                        `<tr><td>${escapeHtml(p.id)}</td><td>${escapeHtml(p.title)}</td></tr>`
+                    ).join('');
+                }
+
+                // Removed products
+                if (diff.removedProducts.length > 0) {
+                    document.getElementById('removed-section').classList.remove('hidden');
+                    const tbody = document.querySelector('#removed-table tbody');
+                    tbody.innerHTML = diff.removedProducts.map(p =>
+                        `<tr><td>${escapeHtml(p.id)}</td><td>${escapeHtml(p.title)}</td></tr>`
+                    ).join('');
+                }
+
+                // Show download if there are any differences
+                if (diff.changes.length > 0 || diff.newProducts.length > 0 || diff.removedProducts.length > 0) {
+                    document.getElementById('download-section').classList.remove('hidden');
+                }
+
+            } catch (err) {
+                const errorEl = document.getElementById('error-msg');
+                errorEl.textContent = err.message;
+                errorEl.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('download-btn').addEventListener('click', () => {
+            const googleStr = document.getElementById('google-xml').value.trim();
+            const shopwareStr = document.getElementById('shopware-xml').value.trim();
+            try {
+                const updatedXml = generateUpdatedXml(googleStr, shopwareStr);
+                downloadFile(updatedXml, 'google-updated.xml');
+            } catch (err) {
+                alert('Error generating XML: ' + err.message);
+            }
+        });
+    </script>
+</body>
+</html>
